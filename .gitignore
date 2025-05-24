@@ -4,3 +4,5 @@ flask_audio_classifier/
 augdata2/
 datasetuji/
 model/
+dataaug/
+dataaug2/
