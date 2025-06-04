@@ -3,7 +3,7 @@ import os
 import numpy as np
 import librosa
 import noisereduce as nr
-import pywt
+from scipy.signal import butter, sosfiltfilt
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from sklearn.preprocessing import LabelEncoder
@@ -11,7 +11,7 @@ import uuid
 
 app = FastAPI()
 
-# Configuration (from your notebook)
+# Configuration (from modelr.ipynb)
 SAMPLE_RATE = 16000
 N_MFCC = 13
 N_MELS = 22
@@ -20,27 +20,27 @@ HOP = int(SAMPLE_RATE * 0.005)
 COMMANDS = ["baca", "berhenti", "foto", "halo", "info", "kembali", "ulang"]
 
 # Load the trained model
-model = load_model('model/mymodele.h5')
+model = load_model('model/mymodelr.h5')
 
 # Initialize LabelEncoder
 le = LabelEncoder()
 le.fit(COMMANDS)
 
-# Preprocessing functions (from your notebook)
+# Preprocessing functions (from modelr.ipynb)
 def load_audio(file_path, sr=SAMPLE_RATE):
     audio, _ = librosa.load(file_path, sr=sr)
     return audio / np.max(np.abs(audio))
 
+def bandpass_filter(audio, lowcut=300, highcut=3400, sr=SAMPLE_RATE, order=5):
+    sos = butter(order, [lowcut, highcut], btype='band', fs=sr, output='sos')
+    return sosfiltfilt(sos, audio)
+
 def reduce_noise(audio):
     return nr.reduce_noise(y=audio, sr=SAMPLE_RATE)
 
-def wavelet_transform(signal):
-    wp = pywt.WaveletPacket(signal, wavelet='db4', mode='symmetric', maxlevel=3)
-    return np.concatenate([n.data for n in wp.get_level(3, 'freq')])
-
 def extract_mfcc(signal):
     return librosa.feature.mfcc(
-        y=wavelet_transform(signal),
+        y=signal,
         sr=SAMPLE_RATE,
         n_mfcc=N_MFCC,
         n_mels=N_MELS,
@@ -62,6 +62,7 @@ async def predict(file: UploadFile = File(...)):
 
         # Preprocess the audio
         audio = load_audio(temp_file_path)
+        audio = bandpass_filter(audio)
         audio = reduce_noise(audio)
         mfcc = extract_mfcc(audio)
 
