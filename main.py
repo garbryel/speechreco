@@ -20,7 +20,7 @@ HOP = int(SAMPLE_RATE * 0.005)
 COMMANDS = ["baca", "berhenti", "foto", "halo", "info", "kembali", "ulang"]
 
 # Load the trained model
-model = load_model('model/mymodelr.h5')
+model = load_model('model/mymodelaugr1.h5')
 
 # Initialize LabelEncoder
 le = LabelEncoder()
